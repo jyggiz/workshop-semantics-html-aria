@@ -71,22 +71,24 @@ const DatePicker = ({monthsInAdvance = 2, currDate}) => {
     return (
         <div className="date-picker">
             <header>
-                <div
+                <button
                     className="btn-month btn-prev"
                     disabled={isPrevMonthAvailable() ? '' : 'disabled'}
                     onClick={setPrevMonth}
+                    aria-label={`Previous month ${dayjs(activeDate).subtract(1 , "month").format("MMMM")}`}
                 >
                     <span></span>
                     { dayjs(activeDate).subtract(1, "month").format("MMM") }
-                </div>
+                </button>
                 <h4>{ dayjs(activeDate).format("MMMM YYYY") }</h4>
-                <div
+                <button
                     className="btn-month btn-next"
                     onClick={setNextMonth}
+                    aria-label={`Next month ${dayjs(activeDate).add(1 , "month").format("MMMM")}`}
                 >
                     { dayjs(activeDate).add(1, 'month').format("MMM") }
                     <span></span>
-                </div>
+                </button>
             </header>
             <div className="days-of-week">
                 <span title="Sunday">S</span>
@@ -99,7 +101,7 @@ const DatePicker = ({monthsInAdvance = 2, currDate}) => {
             </div>
             <div className="date-grid">
                 {days.map((day, index) => {
-                    return <div
+                    return <button
                         className={[
                             'grid-btn',
                             day.isBooked ? 'booked' : '',
@@ -108,10 +110,12 @@ const DatePicker = ({monthsInAdvance = 2, currDate}) => {
                         ].join(' ').trim()}
                         key={index}
                         onClick={() => selectDay(day)}
+                        aria-pressed={isDaySelected(day) ? 'true' : 'false'}
+                        aria-label={`${dayjs(day.date).format('MMMM D')}`}
                     >
                         <time date-time={day.date}>{day.dayOfMonth}</time>
                         <span className="icon" aria-hidden="true"></span>
-                    </div>
+                    </button>
                 })}
             </div>
             <div className="date-key">
