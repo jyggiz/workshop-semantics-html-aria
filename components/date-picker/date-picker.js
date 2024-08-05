@@ -1,18 +1,20 @@
 import React, { useEffect, useRef, useState } from "react"
-import dayjs from 'dayjs'
-import weekday from 'dayjs/plugin/weekday'
-import weekOfYear from 'dayjs/plugin/weekOfYear'
+import PropTypes from "prop-types"
+import dayjs from "dayjs"
+import weekday from "dayjs/plugin/weekday"
+import weekOfYear from "dayjs/plugin/weekOfYear"
 
-import { createActiveMonthDays, createPrevMonthDays, createNextMonthDays } from './utils'
-import "./date-picker.scss"
+import HeaderPortal from "components/header-portal"
+import { createActiveMonthDays, createPrevMonthDays, createNextMonthDays } from "components/date-picker/utils"
+import "components/date-picker/date-picker.scss"
 
-const DatePicker = ({monthsInAdvance = 2, currDate}) => {
+const DatePicker = ({numMonthsAheadToStart = 2}) => {
     dayjs.extend(weekday)
     dayjs.extend(weekOfYear)
 
     // set date to 3 months from now
     let date = new Date()
-    date.setMonth(date.getMonth() + monthsInAdvance)
+    date.setMonth(date.getMonth() + numMonthsAheadToStart)
 
     // keep the active, visible date in State
     let [activeDate, setActiveDate] = useState(dayjs(date))
@@ -25,10 +27,13 @@ const DatePicker = ({monthsInAdvance = 2, currDate}) => {
     let prevMonthDays = createPrevMonthDays(startYear, startMonth, activeMonthDays, initUnavailableDates)
     let nextMonthDays = createNextMonthDays(startYear, startMonth, activeMonthDays, initUnavailableDates)
 
-    let days = [...prevMonthDays, ...activeMonthDays, ...nextMonthDays]
+    let dayData = [...prevMonthDays, ...activeMonthDays, ...nextMonthDays]
     let [unavailableDates, setUnavailableDates] = useState(initUnavailableDates)
     let [selectedDates, setSelectedDates] = useState([])
-
+    
+    const datesArray = dayData.map((day) => {
+        return day.date
+    })
     const setPrevMonth = () => {
         // only go backward as far as current month
         if (isPrevMonthAvailable()) {
@@ -67,42 +72,68 @@ const DatePicker = ({monthsInAdvance = 2, currDate}) => {
                 )
             }
         }
-    };
-
-    const tableRows = (daysArray, sliceSize, sliceFunc) => {
-        const weeks = [];
-
-        for (let i = 0; i < daysArray.length; i += sliceSize) {
-            const slice = daysArray.slice(i, i + sliceSize);
-            weeks.push(sliceFunc(slice, i));
+    }
+    const tableRows = (dayData, sliceSize, sliceFunc) => {
+        const weeks = []
+        for (var i = 0; i < dayData.length; i += sliceSize) {
+            const slice = dayData.slice(i, i + sliceSize)
+            weeks.push(sliceFunc(slice, i))
         }
+        return weeks
+    }
 
-        return weeks;
-    };
+    // Reserve modal functionality
+    const modalLaunchBtnRef = useRef(null)
+    const confirmDialogRef = useRef(null)
+    const dialogHeadingRef = useRef(null)
+    let [dialogActive, setDialogActive] = useState(false)
+    
+    const showConfirmModal = () => {
+        console.log('show modal')
+        setDialogActive(true)
+    }
+    const hideConfirmModal = () => {
+        setDialogActive(false)
+    }
+    const handleKey = (event) => {
+        if (dialogActive && event.key === 'Escape') {
+            setDialogActive(false)
+        }
+    }
+    useEffect(()=> {
+        if (dialogActive) {
+            // Note: inert requires a polyfill to work in non-Chrome browsers
+            document.getElementById('app-root').setAttribute('inert', 'inert')
+            dialogHeadingRef.current.focus()
+        } else {
+            document.getElementById('app-root').removeAttribute('inert')
+            modalLaunchBtnRef.current.focus()
+        }
+    }, [dialogActive])
 
     return (
         <div className="date-picker">
             <header>
                 <button
+                    aria-label={`Previous month ${dayjs(activeDate).subtract(1, "month").format("MMMM")}`}
                     className="btn-month btn-prev"
                     disabled={isPrevMonthAvailable() ? '' : 'disabled'}
                     onClick={setPrevMonth}
-                    aria-label={`Previous month ${dayjs(activeDate).subtract(1 , "month").format("MMMM")}`}
                 >
-                    <span></span>
+                    <span aria-hidden="true"></span>
                     { dayjs(activeDate).subtract(1, "month").format("MMM") }
                 </button>
-                <h4>{ dayjs(activeDate).format("MMMM YYYY") }</h4>
+                <h4 id="month">{ dayjs(activeDate).format("MMMM YYYY") }</h4>
                 <button
+                    aria-label={`Next month ${dayjs(activeDate).add(1, "month").format("MMMM")}`}
                     className="btn-month btn-next"
                     onClick={setNextMonth}
-                    aria-label={`Next month ${dayjs(activeDate).add(1 , "month").format("MMMM")}`}
                 >
                     { dayjs(activeDate).add(1, 'month').format("MMM") }
-                    <span></span>
+                    <span aria-hidden="true"></span>
                 </button>
             </header>
-            <table>
+            <table aria-labelledby="month">
                 <thead>
                     <tr className="days-of-week">
                         <th scope="col">
@@ -136,55 +167,90 @@ const DatePicker = ({monthsInAdvance = 2, currDate}) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {tableRows(days, 7, (week, weekNum) => (
-                        <tr className="date-grid" key={weekNum}>
+                        {tableRows(dayData, 7, (week, weekNum) => (
+                            <tr className="date-grid" key={weekNum}>
                             {week.map((day, index) => (
                                 <td key={index}>
                                     <button
+                                        aria-disabled={day.isBooked ? 'true' : 'false'}
+                                        aria-label={
+                                            `${dayjs(day.date).format('MMMM D')}${day.isBooked ? ' already booked' : '' }${isDaySelected(day) ? ' selected' : ''}`
+                                        }
+                                        aria-selected={
+                                            isDaySelected(day) ? 'true' : 'false' 
+                                        }
                                         className={[
                                             'grid-btn',
                                             day.isBooked ? 'booked' : '',
                                             day.isCurrentMonth ? 'currentMonth' : '',
                                             isDaySelected(day) ? 'selected' : ''
                                         ].join(' ').trim()}
-                                        key={index}
                                         onClick={() => selectDay(day)}
-                                        aria-selected={isDaySelected(day) ? 'true' : 'false'}
-                                        aria-disabled={day.isBooked ? 'true' : 'false'}
-                                        aria-label={`${dayjs(day.date).format('MMMM D')}`}
                                     >
                                         <time date-time={day.date}>{day.dayOfMonth}</time>
                                         <span className="icon" aria-hidden="true"></span>
                                     </button>
                                 </td>
                             ))}
-                        </tr>   
-                    ))}
+                            </tr>
+                        ))}
                 </tbody>
             </table>
-            <div className="date-key">
-                <div className="date-key-item-wrap">
+            <ul className="date-key" role="list">
+                <li className="date-key-item-wrap">
                     <span className="date-key-item booked">
                         <span className="icon" aria-hidden="true"></span>
                     </span>
                     <span className="date-key-text">Booked</span>
-                </div>
-                <div className="date-key-item-wrap">
+                </li>
+                <li className="date-key-item-wrap">
                     <span className="date-key-item available">
                         <span className="icon" aria-hidden="true"></span>
                     </span>
                     <span className="date-key-text">Available</span>
-                </div>
-                <div className="date-key-item-wrap">
+                </li>
+                <li className="date-key-item-wrap">
                     <span className="date-key-item selected">
                         <span className="icon" aria-hidden="true"></span>
                     </span>
                     <span className="date-key-text">Selected</span>
-                </div>
-            </div>
-            <div className="reserve-btn">Reserve</div>
+                </li>
+            </ul>
+            <button
+                className="reserve-btn"
+                disabled={selectedDates.length > 0 ? null : 'disabled'}
+                onClick={showConfirmModal}
+                ref={modalLaunchBtnRef}
+            >
+                Reserve
+            </button>
+
+            <HeaderPortal>
+                <dialog
+                    aria-labelledby="dialogHeading"
+                    aria-modal={dialogActive ? 'true' : 'false'}
+                    open={dialogActive ? 'open' : null}
+                    onKeyUp={handleKey}
+                    ref={confirmDialogRef}
+                >
+                    <h1 id="dialogHeading" ref={dialogHeadingRef} tabIndex="-1">Confirm selection</h1>
+                    <p>You have selected these dates:</p>
+                    <ul>
+                    {selectedDates.map((date, index) => (
+                        <li key={index}>{date}</li>
+                    ))}
+                    </ul>
+                    <div className="form-submit">
+                        <button className="btn-submit" onClick={hideConfirmModal}>Accept</button>
+                    </div>
+                </dialog>
+            </HeaderPortal>
         </div>
     )
+}
+
+DatePicker.propTypes = {
+    numMonthsAheadToStart: PropTypes.number
 }
 
 export default DatePicker
