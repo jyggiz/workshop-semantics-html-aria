@@ -22,18 +22,22 @@ const DatePicker = ({numMonthsAheadToStart = 2}) => {
     const startMonth = dayjs(activeDate).format("M")
 
     // this collection of dates would come from a database, etc.
-    let initUnavailableDates = ['2022-04-10', '2022-04-11', '2022-04-12', '2022-04-14', '2022-04-15', '2022-04-17', '2022-04-18', '2022-04-19', '2022-04-24', '2022-04-25', '2022-04-27']
+    let initUnavailableDates = ['2024-10-10', '2022-04-11', '2022-04-12', '2022-04-14', '2022-04-15', '2022-04-17', '2022-04-18', '2022-04-19', '2022-04-24', '2022-04-25', '2022-04-27']
     let activeMonthDays = createActiveMonthDays(startYear, startMonth, initUnavailableDates)
     let prevMonthDays = createPrevMonthDays(startYear, startMonth, activeMonthDays, initUnavailableDates)
     let nextMonthDays = createNextMonthDays(startYear, startMonth, activeMonthDays, initUnavailableDates)
 
     let dayData = [...prevMonthDays, ...activeMonthDays, ...nextMonthDays]
     let [unavailableDates, setUnavailableDates] = useState(initUnavailableDates)
-    let [selectedDates, setSelectedDates] = useState([])
+    let [selectedDates, setSelectedDates] = useState([]);
+    const buttonRefs = useRef([]);
+    const [hasFocus, setHasFocus] = useState(false);
     
     const datesArray = dayData.map((day) => {
         return day.date
-    })
+    });
+
+    const [focusedDate, setFocusedDate] = useState(datesArray[0]);
     const setPrevMonth = () => {
         // only go backward as far as current month
         if (isPrevMonthAvailable()) {
@@ -111,6 +115,59 @@ const DatePicker = ({numMonthsAheadToStart = 2}) => {
         }
     }, [dialogActive])
 
+    const focusDayByIndex = (index) => {
+        buttonRefs.current[index].focus();
+    };
+    
+    const handleKeyUp = (event, day) => {
+        const buttonDateIndex = datesArray.indexOf(day);
+
+        if (event.key === 'ArrowRight') {
+            const nextDayNum = buttonDateIndex + 1;
+            if (nextDayNum < datesArray.length) {
+                setFocusedDate(datesArray[nextDayNum]);
+                focusDayByIndex(nextDayNum);
+            }
+        } else if (event.key === 'ArrowLeft') {
+            const prevDayNum = buttonDateIndex - 1;
+
+            if (prevDayNum >= 0) {
+                setFocusedDate(datesArray[prevDayNum]);
+                focusDayByIndex(prevDayNum);
+            }
+        } else if (event.key === 'ArrowDown') {
+            const nextWeekNum = buttonDateIndex + 7;
+
+            if (datesArray[nextWeekNum]) {
+                setFocusedDate(datesArray[nextWeekNum]);
+                focusDayByIndex(nextWeekNum);
+            }
+        } else if (event.key === 'ArrowUp') {
+            const prevWeekNum = buttonDateIndex - 7;
+
+            if (datesArray[prevWeekNum]) {
+                setFocusedDate(datesArray[prevWeekNum]);
+                focusDayByIndex(prevWeekNum);
+            }
+        }
+    };
+
+    const handleDateFocus = () => {
+        setHasFocus(true);
+    };
+
+    useEffect(() => {
+        function callback() {
+            setHasFocus(buttonRefs.current.includes(document.activeElement));
+        }
+
+        window.addEventListener('focusin', callback);
+
+        return () => {
+            window.removeEventListener('focusin', callback); 
+        }
+    }, []);
+
     return (
         <div className="date-picker">
             <header>
@@ -186,6 +243,9 @@ const DatePicker = ({numMonthsAheadToStart = 2}) => {
                                             isDaySelected(day) ? 'selected' : ''
                                         ].join(' ').trim()}
                                         onClick={() => selectDay(day)}
+                                        tabIndex={focusedDate === day.date ? '0' : '-1'}
+                                        ref={(elementRef) => { buttonRefs.current.push(elementRef) }}
+                                        onKeyUp={(event) => handleKeyUp(event, day.date)}
                                     >
                                         <time date-time={day.date}>{day.dayOfMonth}</time>
                                         <span className="icon" aria-hidden="true"></span>
@@ -196,6 +256,7 @@ const DatePicker = ({numMonthsAheadToStart = 2}) => {
                         ))}
                 </tbody>
             </table>
+            <p aria-live="assertive">{hasFocus ? 'Cursor keys can navigate dates' : ''}</p>
             <ul className="date-key" role="list">
                 <li className="date-key-item-wrap">
                     <span className="date-key-item booked">
