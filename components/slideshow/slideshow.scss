@@ -6,6 +6,10 @@
     right: 0;
     top: 1em;
 
+    &:hover {
+        cursor: pointer;
+    }
+
     span.icon {
         background-image: url("data:image/svg+xml,%3Csvg version='1.1' xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctitle%3Eenlarge%3C/title%3E%3Cpath d='M32 0h-13l5 5-6 6 3 3 6-6 5 5z'%3E%3C/path%3E%3Cpath d='M32 32v-13l-5 5-6-6-3 3 6 6-5 5z'%3E%3C/path%3E%3Cpath d='M0 32h13l-5-5 6-6-3-3-6 6-5-5z'%3E%3C/path%3E%3Cpath d='M0 0v13l5-5 6 6 3-3-6-6 5-5z'%3E%3C/path%3E%3C/svg%3E");
         background-size: contain;
@@ -24,6 +28,10 @@
     right: 1em;
     top: 1em;
     position: absolute;
+
+    &:hover {
+        cursor: pointer;
+    }
 
     span.icon:before {
         content: 'X';

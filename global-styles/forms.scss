@@ -33,7 +33,7 @@
 .form-field span.icon-calendar {
     background: url(/images/icons/icon-calendar.svg) no-repeat;
 }
-.form-field input,
+.form-field input:not([type="checkbox"]),
 .form-field textarea {
     box-sizing: border-box;
     background-color: var(--bgcolor-input);
@@ -46,7 +46,7 @@
     width: 100%;
     -webkit-appearance: none;
 }
-.form-field input {
+.form-field input:not([type="checkbox"]) {
     height: 3rem;
     padding-left: 3em;
 }
